@@ -7,6 +7,13 @@ import com.noblesgloss.app.scene.SceneObject
 import com.noblesgloss.app.scene.SceneObjectKind
 import com.noblesgloss.app.scene.Transform3D
 import com.noblesgloss.app.scene.TransformSceneObjectCommand
+import com.noblesgloss.app.materials.MaterialConnection
+import com.noblesgloss.app.materials.MaterialGraph
+import com.noblesgloss.app.materials.MaterialNode
+import com.noblesgloss.app.materials.MaterialNodeKind
+import com.noblesgloss.app.materials.MaterialSocket
+import com.noblesgloss.app.materials.MaterialValueType
+import com.noblesgloss.app.materials.SocketDirection
 import org.junit.Assert.*
 import org.junit.Test
 
