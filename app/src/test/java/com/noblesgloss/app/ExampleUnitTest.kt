@@ -47,6 +47,26 @@ class ExampleUnitTest {
         assertEquals(initial.objects.single().transform, history.undo().current.objects.single().transform)
     }
 
+    @Test fun positionRotationAndScaleEditsAreUndoableAndRedoable() {
+        val cube = SceneObject(id = "cube-transform", name = "Cube", kind = SceneObjectKind.CUBE)
+        val initial = SceneDocument().addObject(cube)
+        val target = cube.transform.copy(
+            x = 1.25f,
+            z = -0.5f,
+            rotationY = 45f,
+            scaleX = 1.5f,
+            scaleY = 1.5f,
+            scaleZ = 1.5f
+        )
+        val edited = SceneHistory(initial).execute(
+            TransformSceneObjectCommand(cube.id, cube.transform, target)
+        )
+
+        assertEquals(target, edited.current.objects.single().transform)
+        assertEquals(cube.transform, edited.undo().current.objects.single().transform)
+        assertEquals(target, edited.undo().redo().current.objects.single().transform)
+    }
+
     @Test fun removingSelectedObjectClearsSelection() {
         val cube = SceneObject(id = "cube-1", name = "Cube", kind = SceneObjectKind.CUBE)
         assertNull(SceneDocument().addObject(cube).removeObject(cube.id).selectedObjectId)
