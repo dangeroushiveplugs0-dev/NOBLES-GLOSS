@@ -79,6 +79,7 @@ private fun DIMITTRESCUIApp() {
     var menuExpanded by remember { mutableStateOf(false) }
     var panelOpen by remember { mutableStateOf(false) }
     var materialGraph by remember { mutableStateOf(MaterialGraph()) }
+    var gizmoDragStart by remember { mutableStateOf<Pair<String, Transform3D>?>(null) }
 
     val scene = history.current
     val selected = scene.objects.firstOrNull { it.id == scene.selectedObjectId }
@@ -312,29 +313,59 @@ private fun DIMITTRESCUIApp() {
                     selectedObjectId = scene.selectedObjectId,
                     gizmoMode = transformMode,
                     onGizmoModeChange = { transformMode = it },
+                    onGizmoDragStart = { id ->
+                        history.current.objects.firstOrNull { it.id == id }?.let { obj ->
+                            gizmoDragStart = id to obj.transform
+                        }
+                    },
                     onGizmoDrag = { id, axis, amount ->
                         val obj = history.current.objects.firstOrNull { it.id == id }
                         if (obj != null) {
                             val before = obj.transform
-                            val step = amount * 0.012f
+                            val step = amount * 0.01f
                             val after = when (transformMode) {
                                 TransformMode.MOVE -> when (axis) {
                                     "X" -> before.copy(x = before.x + step)
-                                    "Y" -> before.copy(y = before.y - step)
+                                    "Y" -> before.copy(y = before.y + step)
                                     else -> before.copy(z = before.z + step)
                                 }
-                                TransformMode.ROTATE -> when (axis) {
-                                    "X" -> before.copy(rotationX = before.rotationX + step * 30f)
-                                    "Y" -> before.copy(rotationY = before.rotationY + step * 30f)
-                                    else -> before.copy(rotationZ = before.rotationZ + step * 30f)
+                                TransformMode.ROTATE -> {
+                                    val degrees = amount * 0.7f
+                                    when (axis) {
+                                        "X" -> before.copy(rotationX = before.rotationX + degrees)
+                                        "Y" -> before.copy(rotationY = before.rotationY + degrees)
+                                        else -> before.copy(rotationZ = before.rotationZ + degrees)
+                                    }
                                 }
-                                TransformMode.SCALE -> {
-                                    val next = (before.scaleX + step).coerceAtLeast(0.1f)
-                                    before.copy(scaleX = next, scaleY = next, scaleZ = next)
+                                TransformMode.SCALE -> when (axis) {
+                                    "X" -> before.copy(scaleX = (before.scaleX + step).coerceAtLeast(0.1f))
+                                    "Y" -> before.copy(scaleY = (before.scaleY + step).coerceAtLeast(0.1f))
+                                    "Z" -> before.copy(scaleZ = (before.scaleZ + step).coerceAtLeast(0.1f))
+                                    else -> {
+                                        val nextX = (before.scaleX + step).coerceAtLeast(0.1f)
+                                        val nextY = (before.scaleY + step).coerceAtLeast(0.1f)
+                                        val nextZ = (before.scaleZ + step).coerceAtLeast(0.1f)
+                                        before.copy(scaleX = nextX, scaleY = nextY, scaleZ = nextZ)
+                                    }
                                 }
                             }
-                            if (after != before) history = history.execute(TransformSceneObjectCommand(id, before, after))
+                            if (after != before) {
+                                // Preview edits directly; history is committed once when the drag ends.
+                                history = history.copy(current = history.current.updateTransform(id, after))
+                            }
                         }
+                    },
+                    onGizmoDragEnd = { id ->
+                        val startTransform = gizmoDragStart
+                        val finalTransform = history.current.objects.firstOrNull { it.id == id }?.transform
+                        if (startTransform != null && startTransform.first == id && finalTransform != null &&
+                            startTransform.second != finalTransform
+                        ) {
+                            history = history.execute(
+                                TransformSceneObjectCommand(id, startTransform.second, finalTransform)
+                            )
+                        }
+                        gizmoDragStart = null
                     },
                     modifier = Modifier.weight(1f).fillMaxWidth()
                 )
