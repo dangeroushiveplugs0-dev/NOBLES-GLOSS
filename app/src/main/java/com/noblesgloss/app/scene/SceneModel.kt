@@ -17,7 +17,7 @@ data class Transform3D(
 ) {
     fun hasFiniteValues(): Boolean = listOf(
         x, y, z, rotationX, rotationY, rotationZ, scaleX, scaleY, scaleZ
-    ).all(Float::isFinite)
+    ).all { it.isFinite() }
 }
 
 data class SceneObject(
