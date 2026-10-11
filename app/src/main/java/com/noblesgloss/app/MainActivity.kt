@@ -11,6 +11,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import io.github.sceneview.SceneView
+import io.github.sceneview.math.Size
+import io.github.sceneview.node.CubeNode
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -53,15 +56,7 @@ private fun DIMITTRESCUIApp() {
                     Text("Object mode", color = Muted, fontSize = 12.sp)
                     Text("⋮", color = Brass, fontSize = 20.sp)
                 }
-                Box(Modifier.weight(1f).fillMaxWidth().background(Panel, RoundedCornerShape(16.dp)).border(1.dp, Brass.copy(alpha = .25f), RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(Modifier.size(76.dp).border(1.dp, Burgundy, RoundedCornerShape(18.dp)), contentAlignment = Alignment.Center) { Text("◇", color = Brass, fontSize = 40.sp) }
-                        Text("THE VIEWPORT", color = Ivory, fontSize = 12.sp, letterSpacing = 2.sp)
-                        Text("Renderer integration is next", color = Muted, fontSize = 11.sp)
-                    }
-                    Text("PERSPECTIVE · GRID OFF", Modifier.align(Alignment.BottomStart).padding(14.dp), color = Muted, fontSize = 9.sp)
-                    Text("XYZ", Modifier.align(Alignment.TopEnd).padding(14.dp), color = Brass, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                }
+                Viewport3D(modifier = Modifier.weight(1f).fillMaxWidth())
                 Row(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(14.dp)).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("Select", "Move", "Shape", "Material").forEachIndexed { index, label ->
                         Column(Modifier.weight(1f).background(if (index == 0) Burgundy else Color.Transparent, RoundedCornerShape(10.dp)).padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
