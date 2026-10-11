@@ -58,6 +58,12 @@ private fun DIMITTRESCUIApp() {
     }
     val scene = history.current
     val selected = scene.objects.firstOrNull { it.id == scene.selectedObjectId }
+    val editTransform: (String, (com.noblesgloss.app.scene.Transform3D) -> com.noblesgloss.app.scene.Transform3D) -> Unit = { objectId, update ->
+        val before = history.current.objects.firstOrNull { it.id == objectId }?.transform
+        if (before != null) {
+            history = history.execute(TransformSceneObjectCommand(objectId, before, update(before)))
+        }
+    }
 
     MaterialTheme {
         Surface(Modifier.fillMaxSize(), color = Lacquer) {
@@ -147,34 +153,60 @@ private fun DIMITTRESCUIApp() {
                             letterSpacing = 1.sp
                         )
                         Text(
-                            "X ${"%.1f".format(selected.transform.x)}   Y ${"%.1f".format(selected.transform.y)}   Z ${"%.1f".format(selected.transform.z)}",
+                            "POS  X ${"%.1f".format(selected.transform.x)}   Y ${"%.1f".format(selected.transform.y)}   Z ${"%.1f".format(selected.transform.z)}",
+                            color = Ivory,
+                            fontSize = 11.sp
+                        )
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            SceneAction("X −") { editTransform(selected.id) { it.copy(x = it.x - 0.25f) } }
+                            SceneAction("X +") { editTransform(selected.id) { it.copy(x = it.x + 0.25f) } }
+                            SceneAction("Y −") { editTransform(selected.id) { it.copy(y = it.y - 0.25f) } }
+                            SceneAction("Y +") { editTransform(selected.id) { it.copy(y = it.y + 0.25f) } }
+                            SceneAction("Z −") { editTransform(selected.id) { it.copy(z = it.z - 0.25f) } }
+                            SceneAction("Z +") { editTransform(selected.id) { it.copy(z = it.z + 0.25f) } }
+                        }
+                        Text(
+                            "ROT  X ${"%.0f".format(selected.transform.rotationX)}°   Y ${"%.0f".format(selected.transform.rotationY)}°   Z ${"%.0f".format(selected.transform.rotationZ)}°",
+                            color = Ivory,
+                            fontSize = 11.sp
+                        )
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            SceneAction("RX −15°") { editTransform(selected.id) { it.copy(rotationX = it.rotationX - 15f) } }
+                            SceneAction("RX +15°") { editTransform(selected.id) { it.copy(rotationX = it.rotationX + 15f) } }
+                            SceneAction("RY −15°") { editTransform(selected.id) { it.copy(rotationY = it.rotationY - 15f) } }
+                            SceneAction("RY +15°") { editTransform(selected.id) { it.copy(rotationY = it.rotationY + 15f) } }
+                            SceneAction("RZ −15°") { editTransform(selected.id) { it.copy(rotationZ = it.rotationZ - 15f) } }
+                            SceneAction("RZ +15°") { editTransform(selected.id) { it.copy(rotationZ = it.rotationZ + 15f) } }
+                        }
+                        Text(
+                            "SCALE  ${"%.1f".format(selected.transform.scaleX)} / ${"%.1f".format(selected.transform.scaleY)} / ${"%.1f".format(selected.transform.scaleZ)}",
                             color = Ivory,
                             fontSize = 11.sp
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            SceneAction("X −") {
-                                val before = selected.transform
-                                history = history.execute(
-                                    TransformSceneObjectCommand(selected.id, before, before.copy(x = before.x - 0.25f))
-                                )
+                            SceneAction("Scale −") {
+                                editTransform(selected.id) {
+                                    it.copy(
+                                        scaleX = (it.scaleX - 0.1f).coerceAtLeast(0.1f),
+                                        scaleY = (it.scaleY - 0.1f).coerceAtLeast(0.1f),
+                                        scaleZ = (it.scaleZ - 0.1f).coerceAtLeast(0.1f)
+                                    )
+                                }
                             }
-                            SceneAction("X +") {
-                                val before = selected.transform
-                                history = history.execute(
-                                    TransformSceneObjectCommand(selected.id, before, before.copy(x = before.x + 0.25f))
-                                )
-                            }
-                            SceneAction("Y −") {
-                                val before = selected.transform
-                                history = history.execute(
-                                    TransformSceneObjectCommand(selected.id, before, before.copy(y = before.y - 0.25f))
-                                )
-                            }
-                            SceneAction("Y +") {
-                                val before = selected.transform
-                                history = history.execute(
-                                    TransformSceneObjectCommand(selected.id, before, before.copy(y = before.y + 0.25f))
-                                )
+                            SceneAction("Scale +") {
+                                editTransform(selected.id) {
+                                    it.copy(
+                                        scaleX = it.scaleX + 0.1f,
+                                        scaleY = it.scaleY + 0.1f,
+                                        scaleZ = it.scaleZ + 0.1f
+                                    )
+                                }
                             }
                         }
                     }
