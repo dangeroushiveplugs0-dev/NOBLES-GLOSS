@@ -40,10 +40,12 @@ data class SceneDocument(
 
     fun removeObject(id: String): SceneDocument {
         val remaining = objects.filterNot { it.id == id }
-        return copy(
-            objects = remaining,
-            selectedObjectId = selectedObjectId.takeIf { selected -> remaining.any { it.id == selected } }
-        )
+        val nextSelection = if (selectedObjectId == id) {
+            remaining.lastOrNull()?.id
+        } else {
+            selectedObjectId.takeIf { selected -> remaining.any { it.id == selected } }
+        }
+        return copy(objects = remaining, selectedObjectId = nextSelection)
     }
 
     fun updateTransform(id: String, transform: Transform3D): SceneDocument {
