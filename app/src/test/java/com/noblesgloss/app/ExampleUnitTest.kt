@@ -57,7 +57,6 @@ class ExampleUnitTest {
         val cube = SceneObject(id = "cube-1", name = "Cube", kind = SceneObjectKind.CUBE)
         SceneDocument().addObject(cube).updateTransform(cube.id, Transform3D(x = Float.NaN))
     }
-}
 
     @Test fun removingObjectCanBeUndoneAndRedone() {
         val cube = SceneObject(id = "cube-1", name = "Cube", kind = SceneObjectKind.CUBE)
@@ -73,3 +72,4 @@ class ExampleUnitTest {
         assertEquals(second.id, undone.current.selectedObjectId)
         assertEquals(listOf(cube), undone.redo().current.objects)
     }
+}
