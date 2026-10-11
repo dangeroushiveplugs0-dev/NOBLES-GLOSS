@@ -5,6 +5,7 @@ import com.noblesgloss.app.scene.SceneDocument
 import com.noblesgloss.app.scene.SceneHistory
 import com.noblesgloss.app.scene.SceneObject
 import com.noblesgloss.app.scene.SceneObjectKind
+import com.noblesgloss.app.scene.RemoveSceneObjectCommand
 import com.noblesgloss.app.scene.Transform3D
 import com.noblesgloss.app.scene.TransformSceneObjectCommand
 import com.noblesgloss.app.materials.MaterialConnection
@@ -57,3 +58,18 @@ class ExampleUnitTest {
         SceneDocument().addObject(cube).updateTransform(cube.id, Transform3D(x = Float.NaN))
     }
 }
+
+    @Test fun removingObjectCanBeUndoneAndRedone() {
+        val cube = SceneObject(id = "cube-1", name = "Cube", kind = SceneObjectKind.CUBE)
+        val second = SceneObject(id = "sphere-1", name = "Sphere", kind = SceneObjectKind.SPHERE)
+        val initial = SceneDocument().addObject(cube).addObject(second)
+        val removed = SceneHistory(initial).execute(RemoveSceneObjectCommand(second, second.id))
+
+        assertEquals(listOf(cube), removed.current.objects)
+        assertEquals(cube.id, removed.current.selectedObjectId)
+
+        val undone = removed.undo()
+        assertEquals(listOf(cube, second), undone.current.objects)
+        assertEquals(second.id, undone.current.selectedObjectId)
+        assertEquals(listOf(cube), undone.redo().current.objects)
+    }
