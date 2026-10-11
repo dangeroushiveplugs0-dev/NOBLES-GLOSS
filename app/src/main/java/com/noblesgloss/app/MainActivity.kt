@@ -172,10 +172,10 @@ private fun DIMITTRESCUIApp() {
                     }
                 }
 
-                Viewport3D(modifier = Modifier.weight(1f).fillMaxWidth())
+                Viewport3D(objects = scene.objects, modifier = Modifier.weight(1f).fillMaxWidth())
 
                 Text(
-                    "SCENE DATA IS EDITABLE · VIEWPORT SYNC IS NEXT",
+                    "LIVE SCENE VIEWPORT · MESH / CAMERA / LIGHT PROXIES PENDING",
                     Modifier.align(Alignment.CenterHorizontally),
                     color = Muted,
                     fontSize = 9.sp,
