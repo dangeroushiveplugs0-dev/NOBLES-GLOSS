@@ -33,7 +33,7 @@ fun Viewport3D(modifier: Modifier = Modifier) {
             .border(1.dp, ViewportBrass.copy(alpha = 0.25f), RoundedCornerShape(16.dp))
     ) {
         SceneView(modifier = Modifier.fillMaxSize()) {
-            CubeNode(size = Size(0.8f, 0.8f, 0.8f))
+            CubeNode(size = Size(0.8f))
         }
         Text(
             "FILAMENT VIEWPORT · TEST CUBE",
