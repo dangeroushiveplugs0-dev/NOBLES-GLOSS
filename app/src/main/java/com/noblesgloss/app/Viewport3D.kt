@@ -57,13 +57,13 @@ fun Viewport3D(
                         z = transform.scaleZ
                     )
                     when (obj.kind) {
-                        SceneObjectKind.SPHERE -> io.github.sceneview.SphereNode(
+                        SceneObjectKind.SPHERE -> SphereNode(
                             radius = 0.4f,
                             position = position,
                             rotation = rotation,
                             scale = scale
                         )
-                        SceneObjectKind.PLANE -> io.github.sceneview.PlaneNode(
+                        SceneObjectKind.PLANE -> PlaneNode(
                             size = Size(x = 1.4f, y = 1.4f, z = 0.02f),
                             position = position,
                             rotation = rotation,
