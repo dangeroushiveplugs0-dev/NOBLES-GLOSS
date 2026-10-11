@@ -42,12 +42,12 @@ class MainActivity : ComponentActivity() {
         window.statusBarColor = android.graphics.Color.rgb(16, 16, 18)
         window.navigationBarColor = android.graphics.Color.rgb(16, 16, 18)
         window.decorView.systemUiVisibility = 0
-        setContent { Dimit trescuiApp() }
+        setContent { DimitTrescuiApp() }
     }
 }
 
 @Composable
-private fun Dimit trescuiApp() {
+private fun DimitTrescuiApp() {
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize(), color = Lacquer) {
             Column(
