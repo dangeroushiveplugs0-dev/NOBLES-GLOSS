@@ -27,6 +27,7 @@ import com.noblesgloss.app.scene.RemoveSceneObjectCommand
 import com.noblesgloss.app.scene.SceneHistory
 import com.noblesgloss.app.scene.SceneObject
 import com.noblesgloss.app.scene.SceneObjectKind
+import com.noblesgloss.app.scene.TransformSceneObjectCommand
 
 private val Lacquer = Color(0xFF101012)
 private val Panel = Color(0xFF1B191C)
@@ -121,6 +122,51 @@ private fun DIMITTRESCUIApp() {
                             ) {
                                 Text("${if (obj.id == scene.selectedObjectId) "◆" else "◇"}  ${obj.name}", color = if (obj.id == scene.selectedObjectId) Ivory else Muted, fontSize = 11.sp)
                                 Text(obj.kind.name, color = Brass, fontSize = 9.sp)
+                            }
+                        }
+                    }
+                }
+
+                if (selected != null) {
+                    Column(
+                        Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(12.dp)).padding(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            "TRANSFORM  ·  ${selected.name}",
+                            color = Brass,
+                            fontSize = 10.sp,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            "X ${"%.1f".format(selected.transform.x)}   Y ${"%.1f".format(selected.transform.y)}   Z ${"%.1f".format(selected.transform.z)}",
+                            color = Ivory,
+                            fontSize = 11.sp
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            SceneAction("X −") {
+                                val before = selected.transform
+                                history = history.execute(
+                                    TransformSceneObjectCommand(selected.id, before, before.copy(x = before.x - 0.25f))
+                                )
+                            }
+                            SceneAction("X +") {
+                                val before = selected.transform
+                                history = history.execute(
+                                    TransformSceneObjectCommand(selected.id, before, before.copy(x = before.x + 0.25f))
+                                )
+                            }
+                            SceneAction("Y −") {
+                                val before = selected.transform
+                                history = history.execute(
+                                    TransformSceneObjectCommand(selected.id, before, before.copy(y = before.y - 0.25f))
+                                )
+                            }
+                            SceneAction("Y +") {
+                                val before = selected.transform
+                                history = history.execute(
+                                    TransformSceneObjectCommand(selected.id, before, before.copy(y = before.y + 0.25f))
+                                )
                             }
                         }
                     }
