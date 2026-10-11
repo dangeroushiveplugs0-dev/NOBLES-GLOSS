@@ -12,6 +12,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -22,13 +24,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.noblesgloss.app.materials.MaterialGraph
+import com.noblesgloss.app.materials.MaterialNode
+import com.noblesgloss.app.materials.MaterialNodeKind
 import com.noblesgloss.app.scene.AddSceneObjectCommand
 import com.noblesgloss.app.scene.RemoveSceneObjectCommand
 import com.noblesgloss.app.scene.SceneDocument
 import com.noblesgloss.app.scene.SceneHistory
 import com.noblesgloss.app.scene.SceneObject
 import com.noblesgloss.app.scene.SceneObjectKind
+import com.noblesgloss.app.scene.Transform3D
 import com.noblesgloss.app.scene.TransformSceneObjectCommand
+import java.util.UUID
 
 private val Lacquer = Color(0xFF101012)
 private val Panel = Color(0xFF1B191C)
@@ -36,6 +43,15 @@ private val Ivory = Color(0xFFF0E8DD)
 private val Muted = Color(0xFFB2A6A1)
 private val Burgundy = Color(0xFF7C2035)
 private val Brass = Color(0xFFC3A16A)
+
+private enum class StudioTool(val label: String, val glyph: String) {
+    SELECT("Select", "⌖"),
+    MOVE("Transform", "↔"),
+    SHAPE("Add", "◇"),
+    MATERIAL("Material", "◈")
+}
+
+private enum class TransformMode { MOVE, ROTATE, SCALE }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,186 +72,255 @@ private fun DIMITTRESCUIApp() {
             )
         )
     }
+    var activeTool by remember { mutableStateOf(StudioTool.SELECT) }
+    var transformMode by remember { mutableStateOf(TransformMode.MOVE) }
+    var menuExpanded by remember { mutableStateOf(false) }
+    var materialGraph by remember { mutableStateOf(MaterialGraph()) }
+
     val scene = history.current
     val selected = scene.objects.firstOrNull { it.id == scene.selectedObjectId }
-    val editTransform: (String, (com.noblesgloss.app.scene.Transform3D) -> com.noblesgloss.app.scene.Transform3D) -> Unit = { objectId, update ->
-        val before = history.current.objects.firstOrNull { it.id == objectId }?.transform
-        if (before != null) {
-            history = history.execute(TransformSceneObjectCommand(objectId, before, update(before)))
+
+    fun addObject(kind: SceneObjectKind) {
+        val count = scene.objects.count { it.kind == kind } + 1
+        val label = when (kind) {
+            SceneObjectKind.CUBE -> "Cube"
+            SceneObjectKind.SPHERE -> "Sphere"
+            SceneObjectKind.PLANE -> "Plane"
+            SceneObjectKind.CAMERA -> "Camera"
+            SceneObjectKind.LIGHT -> "Light"
+            SceneObjectKind.MESH -> "Mesh"
         }
+        history = history.execute(AddSceneObjectCommand(SceneObject(name = "$label $count", kind = kind)))
+    }
+
+    fun editSelected(update: (Transform3D) -> Transform3D) {
+        val current = selected ?: return
+        history = history.execute(
+            TransformSceneObjectCommand(current.id, current.transform, update(current.transform))
+        )
+    }
+
+    fun addMaterialNode(kind: MaterialNodeKind) {
+        val title = when (kind) {
+            MaterialNodeKind.PRINCIPLED_SURFACE -> "Principled BSDF"
+            MaterialNodeKind.OUTPUT -> "Material Output"
+            MaterialNodeKind.CONSTANT_FLOAT -> "Value"
+            MaterialNodeKind.CONSTANT_COLOR -> "Color"
+            MaterialNodeKind.NOISE -> "Noise Texture"
+            MaterialNodeKind.VORONOI -> "Voronoi Texture"
+            MaterialNodeKind.MATH -> "Math"
+            MaterialNodeKind.MIX -> "Mix"
+            MaterialNodeKind.NORMAL_MAP -> "Normal Map"
+            MaterialNodeKind.FRESNEL -> "Fresnel"
+            MaterialNodeKind.UV_COORDINATES -> "UV Coordinates"
+            MaterialNodeKind.IMAGE_TEXTURE -> "Image Texture"
+        }
+        materialGraph = materialGraph.copy(
+            nodes = materialGraph.nodes + MaterialNode(id = UUID.randomUUID().toString(), kind = kind, title = title)
+        )
     }
 
     MaterialTheme {
         Surface(Modifier.fillMaxSize(), color = Lacquer) {
             Column(
-                Modifier.fillMaxSize().background(Lacquer).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                Modifier.fillMaxSize()
+                    .background(Lacquer)
+                    .padding(horizontal = 8.dp, vertical = 5.dp),
+                verticalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 Row(
-                    Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text("NOBLES-GLOSS", color = Ivory, fontSize = 19.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
-                        Text("DIMITTRESCUI / STUDIO", color = Brass, fontSize = 10.sp, letterSpacing = 1.6.sp)
-                    }
-                    Box(
-                        Modifier.size(42.dp).background(Panel, RoundedCornerShape(12.dp))
-                            .border(1.dp, Brass.copy(alpha = .5f), RoundedCornerShape(12.dp)),
-                        contentAlignment = Alignment.Center
-                    ) { Text("N", color = Ivory, fontSize = 22.sp) }
-                }
-
-                Row(
-                    Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(12.dp)).padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    Modifier.fillMaxWidth().height(42.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("SCENE", color = Ivory, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    Text("${scene.objects.size} objects", color = Muted, fontSize = 12.sp)
-                    Text("Object mode", color = Brass, fontSize = 11.sp)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+                        Text("NOBLES-GLOSS", color = Ivory, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.1.sp)
+                        Text("DIMITTRESCUI  /  STUDIO", color = Brass, fontSize = 9.sp, letterSpacing = 1.2.sp)
+                    }
+                    Box {
+                        Box(
+                            Modifier.size(38.dp)
+                                .background(Panel, RoundedCornerShape(11.dp))
+                                .border(1.dp, Brass.copy(alpha = .5f), RoundedCornerShape(11.dp))
+                                .clickable { menuExpanded = true },
+                            contentAlignment = Alignment.Center
+                        ) { Text("⋮", color = Ivory, fontSize = 23.sp) }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false },
+                            modifier = Modifier.background(Panel)
+                        ) {
+                            DropdownMenuItem(text = { Text("Add cube", color = Ivory) }, onClick = { addObject(SceneObjectKind.CUBE); menuExpanded = false })
+                            DropdownMenuItem(text = { Text("Add sphere", color = Ivory) }, onClick = { addObject(SceneObjectKind.SPHERE); menuExpanded = false })
+                            DropdownMenuItem(text = { Text("Add plane", color = Ivory) }, onClick = { addObject(SceneObjectKind.PLANE); menuExpanded = false })
+                            DropdownMenuItem(text = { Text("Add camera proxy", color = Ivory) }, onClick = { addObject(SceneObjectKind.CAMERA); menuExpanded = false })
+                            DropdownMenuItem(text = { Text("Add light proxy", color = Ivory) }, onClick = { addObject(SceneObjectKind.LIGHT); menuExpanded = false })
+                            DropdownMenuItem(
+                                text = { Text("Undo", color = if (history.canUndo) Ivory else Muted) },
+                                enabled = history.canUndo,
+                                onClick = { history = history.undo(); menuExpanded = false }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Redo", color = if (history.canRedo) Ivory else Muted) },
+                                enabled = history.canRedo,
+                                onClick = { history = history.redo(); menuExpanded = false }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete selected", color = if (selected != null) Ivory else Muted) },
+                                enabled = selected != null,
+                                onClick = { selected?.let { history = history.execute(RemoveSceneObjectCommand(it, scene.selectedObjectId)) }; menuExpanded = false }
+                            )
+                        }
+                    }
                 }
 
                 Row(
-                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    Modifier.fillMaxWidth().height(35.dp)
+                        .background(Panel, RoundedCornerShape(10.dp))
+                        .padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    SceneAction("＋ Cube") {
-                        val next = SceneObject(name = "Cube ${scene.objects.count { it.kind == SceneObjectKind.CUBE } + 1}", kind = SceneObjectKind.CUBE)
-                        history = history.execute(AddSceneObjectCommand(next))
-                    }
-                    SceneAction("＋ Sphere") {
-                        val next = SceneObject(name = "Sphere ${scene.objects.count { it.kind == SceneObjectKind.SPHERE } + 1}", kind = SceneObjectKind.SPHERE)
-                        history = history.execute(AddSceneObjectCommand(next))
-                    }
-                    SceneAction("＋ Plane") {
-                        val next = SceneObject(name = "Plane ${scene.objects.count { it.kind == SceneObjectKind.PLANE } + 1}", kind = SceneObjectKind.PLANE)
-                        history = history.execute(AddSceneObjectCommand(next))
-                    }
-                    SceneAction("Undo", enabled = history.canUndo) { history = history.undo() }
-                    SceneAction("Redo", enabled = history.canRedo) { history = history.redo() }
-                    SceneAction("Delete", enabled = selected != null) {
-                        selected?.let { history = history.execute(RemoveSceneObjectCommand(it, scene.selectedObjectId)) }
-                    }
-                }
-
-                if (scene.objects.isNotEmpty()) {
-                    Column(
-                        Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(12.dp)).padding(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    Text("SCENE", color = Brass, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.width(8.dp))
+                    Row(
+                        Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        scene.objects.takeLast(3).reversed().forEach { obj ->
-                            Row(
-                                Modifier.fillMaxWidth()
-                                    .clickable { history = history.copy(current = history.current.select(obj.id)) }
-                                    .background(if (obj.id == scene.selectedObjectId) Burgundy.copy(alpha = .55f) else Color.Transparent, RoundedCornerShape(8.dp))
-                                    .padding(horizontal = 10.dp, vertical = 7.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                        scene.objects.forEach { obj ->
+                            Box(
+                                Modifier.background(
+                                    if (obj.id == scene.selectedObjectId) Burgundy else Color(0xFF29262A),
+                                    RoundedCornerShape(7.dp)
+                                ).clickable { history = history.copy(current = history.current.select(obj.id)) }
+                                    .padding(horizontal = 8.dp, vertical = 5.dp)
                             ) {
-                                Text("${if (obj.id == scene.selectedObjectId) "◆" else "◇"}  ${obj.name}", color = if (obj.id == scene.selectedObjectId) Ivory else Muted, fontSize = 11.sp)
-                                Text(obj.kind.name, color = Brass, fontSize = 9.sp)
+                                Text(obj.name, color = if (obj.id == scene.selectedObjectId) Ivory else Muted, fontSize = 10.sp, maxLines = 1)
                             }
+                        }
+                        if (scene.objects.isEmpty()) Text("No objects · use Add", color = Muted, fontSize = 10.sp)
+                    }
+                    Text("${scene.objects.size}", color = Muted, fontSize = 10.sp)
+                }
+
+                when (activeTool) {
+                    StudioTool.SELECT -> Unit
+                    StudioTool.MOVE -> {
+                        Column(
+                            Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(10.dp)).padding(7.dp),
+                            verticalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                                TransformMode.values().forEach { mode ->
+                                    SmallAction(mode.name, active = transformMode == mode) { transformMode = mode }
+                                }
+                                Spacer(Modifier.weight(1f))
+                                Text(selected?.name ?: "No selection", color = Muted, fontSize = 10.sp)
+                            }
+                            Row(
+                                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                when (transformMode) {
+                                    TransformMode.MOVE -> {
+                                        SmallAction("X −") { editSelected { it.copy(x = it.x - .25f) } }
+                                        SmallAction("X +") { editSelected { it.copy(x = it.x + .25f) } }
+                                        SmallAction("Y −") { editSelected { it.copy(y = it.y - .25f) } }
+                                        SmallAction("Y +") { editSelected { it.copy(y = it.y + .25f) } }
+                                        SmallAction("Z −") { editSelected { it.copy(z = it.z - .25f) } }
+                                        SmallAction("Z +") { editSelected { it.copy(z = it.z + .25f) } }
+                                    }
+                                    TransformMode.ROTATE -> {
+                                        SmallAction("X −15°") { editSelected { it.copy(rotationX = it.rotationX - 15f) } }
+                                        SmallAction("X +15°") { editSelected { it.copy(rotationX = it.rotationX + 15f) } }
+                                        SmallAction("Y −15°") { editSelected { it.copy(rotationY = it.rotationY - 15f) } }
+                                        SmallAction("Y +15°") { editSelected { it.copy(rotationY = it.rotationY + 15f) } }
+                                        SmallAction("Z −15°") { editSelected { it.copy(rotationZ = it.rotationZ - 15f) } }
+                                        SmallAction("Z +15°") { editSelected { it.copy(rotationZ = it.rotationZ + 15f) } }
+                                    }
+                                    TransformMode.SCALE -> {
+                                        SmallAction("− Scale") {
+                                            editSelected { it.copy(scaleX = (it.scaleX - .1f).coerceAtLeast(.1f), scaleY = (it.scaleY - .1f).coerceAtLeast(.1f), scaleZ = (it.scaleZ - .1f).coerceAtLeast(.1f)) }
+                                        }
+                                        SmallAction("+ Scale") {
+                                            editSelected { it.copy(scaleX = it.scaleX + .1f, scaleY = it.scaleY + .1f, scaleZ = it.scaleZ + .1f) }
+                                        }
+                                    }
+                                }
+                            }
+                            Text(
+                                selected?.let { "X %.2f  Y %.2f  Z %.2f".format(it.transform.x, it.transform.y, it.transform.z) } ?: "Select an object to edit",
+                                color = Muted,
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
+                    StudioTool.SHAPE -> {
+                        Row(
+                            Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(10.dp)).padding(7.dp),
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            SmallAction("＋ Cube") { addObject(SceneObjectKind.CUBE) }
+                            SmallAction("＋ Sphere") { addObject(SceneObjectKind.SPHERE) }
+                            SmallAction("＋ Plane") { addObject(SceneObjectKind.PLANE) }
+                            SmallAction("Delete", enabled = selected != null) {
+                                selected?.let { history = history.execute(RemoveSceneObjectCommand(it, scene.selectedObjectId)) }
+                            }
+                        }
+                    }
+                    StudioTool.MATERIAL -> {
+                        Column(
+                            Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(10.dp)).padding(7.dp),
+                            verticalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Text("MATERIAL GRAPH", color = Brass, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                                Text("${materialGraph.nodes.size} nodes", color = Muted, fontSize = 10.sp)
+                            }
+                            Row(
+                                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                SmallAction("Principled") { addMaterialNode(MaterialNodeKind.PRINCIPLED_SURFACE) }
+                                SmallAction("Noise") { addMaterialNode(MaterialNodeKind.NOISE) }
+                                SmallAction("Voronoi") { addMaterialNode(MaterialNodeKind.VORONOI) }
+                                SmallAction("Mix") { addMaterialNode(MaterialNodeKind.MIX) }
+                                SmallAction("Output") { addMaterialNode(MaterialNodeKind.OUTPUT) }
+                                SmallAction("Clear", enabled = materialGraph.nodes.isNotEmpty()) { materialGraph = MaterialGraph() }
+                            }
+                            Text(
+                                if (materialGraph.nodes.isEmpty()) "Add nodes to start building a graph. Shader rendering is not connected yet."
+                                else materialGraph.nodes.takeLast(3).joinToString("  ·  ") { it.title } + if (materialGraph.nodes.size > 3) "  ·  …" else "",
+                                color = Muted,
+                                fontSize = 9.sp,
+                                maxLines = 2
+                            )
                         }
                     }
                 }
 
-                if (selected != null) {
-                    Column(
-                        Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(12.dp)).padding(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            "TRANSFORM  ·  ${selected.name}",
-                            color = Brass,
-                            fontSize = 10.sp,
-                            letterSpacing = 1.sp
-                        )
-                        Text(
-                            "POS  X ${"%.1f".format(selected.transform.x)}   Y ${"%.1f".format(selected.transform.y)}   Z ${"%.1f".format(selected.transform.z)}",
-                            color = Ivory,
-                            fontSize = 11.sp
-                        )
-                        Row(
-                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            SceneAction("X −") { editTransform(selected.id) { it.copy(x = it.x - 0.25f) } }
-                            SceneAction("X +") { editTransform(selected.id) { it.copy(x = it.x + 0.25f) } }
-                            SceneAction("Y −") { editTransform(selected.id) { it.copy(y = it.y - 0.25f) } }
-                            SceneAction("Y +") { editTransform(selected.id) { it.copy(y = it.y + 0.25f) } }
-                            SceneAction("Z −") { editTransform(selected.id) { it.copy(z = it.z - 0.25f) } }
-                            SceneAction("Z +") { editTransform(selected.id) { it.copy(z = it.z + 0.25f) } }
-                        }
-                        Text(
-                            "ROT  X ${"%.0f".format(selected.transform.rotationX)}°   Y ${"%.0f".format(selected.transform.rotationY)}°   Z ${"%.0f".format(selected.transform.rotationZ)}°",
-                            color = Ivory,
-                            fontSize = 11.sp
-                        )
-                        Row(
-                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            SceneAction("RX −15°") { editTransform(selected.id) { it.copy(rotationX = it.rotationX - 15f) } }
-                            SceneAction("RX +15°") { editTransform(selected.id) { it.copy(rotationX = it.rotationX + 15f) } }
-                            SceneAction("RY −15°") { editTransform(selected.id) { it.copy(rotationY = it.rotationY - 15f) } }
-                            SceneAction("RY +15°") { editTransform(selected.id) { it.copy(rotationY = it.rotationY + 15f) } }
-                            SceneAction("RZ −15°") { editTransform(selected.id) { it.copy(rotationZ = it.rotationZ - 15f) } }
-                            SceneAction("RZ +15°") { editTransform(selected.id) { it.copy(rotationZ = it.rotationZ + 15f) } }
-                        }
-                        Text(
-                            "SCALE  ${"%.1f".format(selected.transform.scaleX)} / ${"%.1f".format(selected.transform.scaleY)} / ${"%.1f".format(selected.transform.scaleZ)}",
-                            color = Ivory,
-                            fontSize = 11.sp
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            SceneAction("Scale −") {
-                                editTransform(selected.id) {
-                                    it.copy(
-                                        scaleX = (it.scaleX - 0.1f).coerceAtLeast(0.1f),
-                                        scaleY = (it.scaleY - 0.1f).coerceAtLeast(0.1f),
-                                        scaleZ = (it.scaleZ - 0.1f).coerceAtLeast(0.1f)
-                                    )
-                                }
-                            }
-                            SceneAction("Scale +") {
-                                editTransform(selected.id) {
-                                    it.copy(
-                                        scaleX = it.scaleX + 0.1f,
-                                        scaleY = it.scaleY + 0.1f,
-                                        scaleZ = it.scaleZ + 0.1f
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Viewport3D(objects = scene.objects, modifier = Modifier.weight(1f).fillMaxWidth())
-
-                Text(
-                    "LIVE SCENE VIEWPORT · MESH / CAMERA / LIGHT PROXIES PENDING",
-                    Modifier.align(Alignment.CenterHorizontally),
-                    color = Muted,
-                    fontSize = 9.sp,
-                    letterSpacing = .4.sp
+                Viewport3D(
+                    objects = scene.objects,
+                    modifier = Modifier.weight(1f).fillMaxWidth()
                 )
 
                 Row(
-                    Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(14.dp)).padding(6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    Modifier.fillMaxWidth().height(54.dp)
+                        .background(Panel, RoundedCornerShape(13.dp))
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    listOf("Select", "Move", "Shape", "Material").forEachIndexed { index, label ->
+                    StudioTool.values().forEach { tool ->
                         Column(
-                            Modifier.weight(1f)
-                                .background(if (index == 0) Burgundy else Color.Transparent, RoundedCornerShape(10.dp))
-                                .padding(vertical = 10.dp),
+                            Modifier.weight(1f).fillMaxHeight()
+                                .background(if (activeTool == tool) Burgundy else Color.Transparent, RoundedCornerShape(9.dp))
+                                .clickable { activeTool = tool }
+                                .padding(vertical = 4.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            verticalArrangement = Arrangement.Center
                         ) {
-                            Text(listOf("⌖", "↔", "◇", "◈")[index], color = if (index == 0) Ivory else Brass, fontSize = 18.sp)
-                            Text(label, color = if (index == 0) Ivory else Muted, fontSize = 10.sp)
+                            Text(tool.glyph, color = if (activeTool == tool) Ivory else Brass, fontSize = 18.sp)
+                            Text(tool.label, color = if (activeTool == tool) Ivory else Muted, fontSize = 9.sp, maxLines = 1)
                         }
                     }
                 }
@@ -245,19 +330,25 @@ private fun DIMITTRESCUIApp() {
 }
 
 @Composable
-private fun SceneAction(label: String, enabled: Boolean = true, onClick: () -> Unit) {
+private fun SmallAction(
+    label: String,
+    enabled: Boolean = true,
+    active: Boolean = false,
+    onClick: () -> Unit
+) {
     Button(
         onClick = onClick,
         enabled = enabled,
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 7.dp),
-        shape = RoundedCornerShape(9.dp),
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Burgundy,
+            containerColor = if (active) Burgundy else Color(0xFF302B30),
             contentColor = Ivory,
             disabledContainerColor = Panel,
             disabledContentColor = Muted
-        )
+        ),
+        modifier = Modifier.heightIn(min = 32.dp)
     ) {
-        Text(label, fontSize = 11.sp, maxLines = 1)
+        Text(label, fontSize = 10.sp, maxLines = 1)
     }
 }
