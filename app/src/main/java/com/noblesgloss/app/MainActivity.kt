@@ -99,6 +99,9 @@ private fun DIMITTRESCUIApp() {
                     }
                     SceneAction("Undo", enabled = history.canUndo) { history = history.undo() }
                     SceneAction("Redo", enabled = history.canRedo) { history = history.redo() }
+                    SceneAction("Delete", enabled = selected != null) {
+                        selected?.let { history = history.execute(RemoveSceneObjectCommand(it, scene.selectedObjectId)) }
+                    }
                 }
 
                 if (scene.objects.isNotEmpty()) {
