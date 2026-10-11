@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -112,6 +113,7 @@ private fun DIMITTRESCUIApp() {
                         scene.objects.takeLast(3).reversed().forEach { obj ->
                             Row(
                                 Modifier.fillMaxWidth()
+                                    .clickable { history = history.copy(current = history.current.select(obj.id)) }
                                     .background(if (obj.id == scene.selectedObjectId) Burgundy.copy(alpha = .55f) else Color.Transparent, RoundedCornerShape(8.dp))
                                     .padding(horizontal = 10.dp, vertical = 7.dp),
                                 verticalAlignment = Alignment.CenterVertically,
