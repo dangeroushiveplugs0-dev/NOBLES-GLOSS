@@ -2,6 +2,8 @@ package com.noblesgloss.app
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -11,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.noblesgloss.app.scene.SceneObject
@@ -33,6 +36,10 @@ private val ViewportMuted = Color(0xFFB2A6A1)
 @Composable
 fun Viewport3D(
     objects: List<SceneObject>,
+    selectedObjectId: String?,
+    gizmoMode: TransformMode,
+    onGizmoModeChange: (TransformMode) -> Unit,
+    onGizmoDrag: (String, String, Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -76,6 +83,23 @@ fun Viewport3D(
                 }
             }
         }
+        Column(modifier = Modifier.align(Alignment.TopStart).padding(8.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(5.dp)) {
+            Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp)) {
+                TransformMode.values().forEach { mode ->
+                    Text(
+                        text = when (mode) { TransformMode.MOVE -> "↔"; TransformMode.ROTATE -> "⟳"; TransformMode.SCALE -> "⤢" },
+                        modifier = Modifier.background(if (gizmoMode == mode) Color(0xFF7C2035) else Color(0xDD1B191C), RoundedCornerShape(8.dp)).border(1.dp, ViewportBrass.copy(alpha = 0.55f), RoundedCornerShape(8.dp)).clickable { onGizmoModeChange(mode) }.padding(horizontal = 10.dp, vertical = 6.dp),
+                        color = Color(0xFFF0E8DD), fontSize = 16.sp
+                    )
+                }
+            }
+            if (selectedObjectId != null && objects.any { it.id == selectedObjectId }) {
+                Text("Drag axes to ${gizmoMode.name}", color = ViewportMuted, fontSize = 8.sp)
+                GizmoAxis("X", Color(0xFFE35D6A), true) { onGizmoDrag(selectedObjectId, "X", it) }
+                GizmoAxis("Y", Color(0xFF69C58A), false) { onGizmoDrag(selectedObjectId, "Y", it) }
+                GizmoAxis("Z", Color(0xFF6CA8FF), true) { onGizmoDrag(selectedObjectId, "Z", it) }
+            }
+        }
         Text(
             "FILAMENT VIEWPORT · ${objects.count { it.visible }} VISIBLE",
             modifier = Modifier.align(Alignment.BottomStart).padding(12.dp),
@@ -88,5 +112,23 @@ fun Viewport3D(
             color = ViewportBrass,
             fontSize = 10.sp
         )
+    }
+}
+
+@Composable
+private fun GizmoAxis(axis: String, tint: Color, horizontal: Boolean, onDrag: (Float) -> Unit) {
+    Row(
+        modifier = Modifier.width(92.dp).height(30.dp).background(Color(0xDD1B191C), RoundedCornerShape(8.dp)).border(1.dp, tint.copy(alpha = 0.65f), RoundedCornerShape(8.dp)).pointerInput(axis, horizontal) {
+            detectDragGestures { change, dragAmount ->
+                change.consume()
+                onDrag(if (horizontal) dragAmount.x else -dragAmount.y)
+            }
+        }.padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+    ) {
+        Text(axis, color = tint, fontSize = 12.sp)
+        Box(Modifier.weight(1f).height(3.dp).background(tint, RoundedCornerShape(4.dp)))
+        Text("↔", color = tint, fontSize = 11.sp)
     }
 }
