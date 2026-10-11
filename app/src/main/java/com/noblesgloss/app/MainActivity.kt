@@ -53,7 +53,7 @@ private enum class StudioTool(val label: String, val glyph: String) {
     MATERIAL("Material", "◈")
 }
 
-private enum class TransformMode { MOVE, ROTATE, SCALE }
+enum class TransformMode { MOVE, ROTATE, SCALE }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -206,7 +206,13 @@ private fun DIMITTRESCUIApp() {
                 }
 
                 if (panelOpen) when (activeTool) {
-                    StudioTool.SELECT -> {\n                        Row(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(10.dp)).padding(7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {\n                            SmallAction("＋ Cube") { addObject(SceneObjectKind.CUBE) }\n                            SmallAction("＋ Sphere") { addObject(SceneObjectKind.SPHERE) }\n                            SmallAction("＋ Plane") { addObject(SceneObjectKind.PLANE) }\n                        }\n                    }
+                    StudioTool.SELECT -> {
+                        Row(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(10.dp)).padding(7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            SmallAction("＋ Cube") { addObject(SceneObjectKind.CUBE) }
+                            SmallAction("＋ Sphere") { addObject(SceneObjectKind.SPHERE) }
+                            SmallAction("＋ Plane") { addObject(SceneObjectKind.PLANE) }
+                        }
+                    }
                     StudioTool.MOVE -> {
                         Column(
                             Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(10.dp)).padding(7.dp),
@@ -301,7 +307,37 @@ private fun DIMITTRESCUIApp() {
                     }
                 }
 
-                Viewport3D(\n                    objects = scene.objects,\n                    selectedObjectId = scene.selectedObjectId,\n                    gizmoMode = transformMode,\n                    onGizmoDrag = { id, axis, amount ->\n                        val obj = history.current.objects.firstOrNull { it.id == id }\n                        if (obj != null) {\n                            val before = obj.transform\n                            val step = amount * 0.012f\n                            val after = when (transformMode) {\n                                TransformMode.MOVE -> when (axis) {\n                                    "X" -> before.copy(x = before.x + step)\n                                    "Y" -> before.copy(y = before.y - step)\n                                    else -> before.copy(z = before.z + step)\n                                }\n                                TransformMode.ROTATE -> when (axis) {\n                                    "X" -> before.copy(rotationX = before.rotationX + step * 30f)\n                                    "Y" -> before.copy(rotationY = before.rotationY + step * 30f)\n                                    else -> before.copy(rotationZ = before.rotationZ + step * 30f)\n                                }\n                                TransformMode.SCALE -> {\n                                    val next = (before.scaleX + step).coerceAtLeast(0.1f)\n                                    before.copy(scaleX = next, scaleY = next, scaleZ = next)\n                                }\n                            }\n                            if (after != before) history = history.execute(TransformSceneObjectCommand(id, before, after))\n                        }\n                    },\n                    modifier = Modifier.weight(1f).fillMaxWidth()\n                )
+                Viewport3D(
+                    objects = scene.objects,
+                    selectedObjectId = scene.selectedObjectId,
+                    gizmoMode = transformMode,
+                    onGizmoModeChange = { transformMode = it },
+                    onGizmoDrag = { id, axis, amount ->
+                        val obj = history.current.objects.firstOrNull { it.id == id }
+                        if (obj != null) {
+                            val before = obj.transform
+                            val step = amount * 0.012f
+                            val after = when (transformMode) {
+                                TransformMode.MOVE -> when (axis) {
+                                    "X" -> before.copy(x = before.x + step)
+                                    "Y" -> before.copy(y = before.y - step)
+                                    else -> before.copy(z = before.z + step)
+                                }
+                                TransformMode.ROTATE -> when (axis) {
+                                    "X" -> before.copy(rotationX = before.rotationX + step * 30f)
+                                    "Y" -> before.copy(rotationY = before.rotationY + step * 30f)
+                                    else -> before.copy(rotationZ = before.rotationZ + step * 30f)
+                                }
+                                TransformMode.SCALE -> {
+                                    val next = (before.scaleX + step).coerceAtLeast(0.1f)
+                                    before.copy(scaleX = next, scaleY = next, scaleZ = next)
+                                }
+                            }
+                            if (after != before) history = history.execute(TransformSceneObjectCommand(id, before, after))
+                        }
+                    },
+                    modifier = Modifier.weight(1f).fillMaxWidth()
+                )
 
                 Row(
                     Modifier.fillMaxWidth().height(54.dp)
@@ -314,7 +350,9 @@ private fun DIMITTRESCUIApp() {
                         Column(
                             Modifier.weight(1f).fillMaxHeight()
                                 .background(if (activeTool == tool) Burgundy else Color.Transparent, RoundedCornerShape(9.dp))
-                                .clickable {\n                                    if (activeTool == tool) panelOpen = !panelOpen else { activeTool = tool; panelOpen = true }\n                                }
+                                .clickable {
+                                    if (activeTool == tool) panelOpen = !panelOpen else { activeTool = tool; panelOpen = true }
+                                }
                                 .padding(vertical = 4.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
