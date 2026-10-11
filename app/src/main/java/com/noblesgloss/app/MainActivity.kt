@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.noblesgloss.app.scene.AddSceneObjectCommand
 import com.noblesgloss.app.scene.RemoveSceneObjectCommand
+import com.noblesgloss.app.scene.SceneDocument
 import com.noblesgloss.app.scene.SceneHistory
 import com.noblesgloss.app.scene.SceneObject
 import com.noblesgloss.app.scene.SceneObjectKind
@@ -47,7 +48,14 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun DIMITTRESCUIApp() {
-    var history by remember { mutableStateOf(SceneHistory()) }
+    var history by remember {
+        val starter = SceneObject(name = "Cube 1", kind = SceneObjectKind.CUBE)
+        mutableStateOf(
+            SceneHistory(
+                current = SceneDocument(objects = listOf(starter), selectedObjectId = starter.id)
+            )
+        )
+    }
     val scene = history.current
     val selected = scene.objects.firstOrNull { it.id == scene.selectedObjectId }
 
