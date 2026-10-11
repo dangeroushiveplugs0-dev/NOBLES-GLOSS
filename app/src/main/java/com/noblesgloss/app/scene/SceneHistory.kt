@@ -54,3 +54,23 @@ data class SceneHistory(
     val canUndo: Boolean get() = undoStack.isNotEmpty()
     val canRedo: Boolean get() = redoStack.isNotEmpty()
 }
+
+
+data class RemoveSceneObjectCommand(
+    val objectToRemove: SceneObject,
+    val previouslySelectedObjectId: String?
+) : SceneCommand {
+    override fun apply(document: SceneDocument): SceneDocument =
+        document.removeObject(objectToRemove.id)
+
+    override fun revert(document: SceneDocument): SceneDocument {
+        val restored = document.addObject(objectToRemove)
+        return if (previouslySelectedObjectId != null &&
+            restored.objects.any { it.id == previouslySelectedObjectId }
+        ) {
+            restored.select(previouslySelectedObjectId)
+        } else {
+            restored
+        }
+    }
+}
