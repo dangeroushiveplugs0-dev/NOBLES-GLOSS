@@ -5,7 +5,8 @@ plugins {
 }
 android {
     namespace = "com.noblesgloss.app"
-    compileSdk = 35
+    compileSdk = 37
+    buildToolsVersion = "36.0.0"
     defaultConfig {
         applicationId = "com.noblesgloss.app"
         minSdk = 26
@@ -25,7 +26,6 @@ dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2025.03.00")
     implementation(composeBom)
     implementation("androidx.activity:activity-compose:1.10.1")
-    // SceneView embeds Google Filament for native real-time 3D rendering.
     implementation("io.github.sceneview:sceneview:4.54.0")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
