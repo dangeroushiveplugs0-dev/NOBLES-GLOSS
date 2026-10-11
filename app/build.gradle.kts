@@ -25,6 +25,8 @@ dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2025.03.00")
     implementation(composeBom)
     implementation("androidx.activity:activity-compose:1.10.1")
+    // SceneView embeds Google Filament for native real-time 3D rendering.
+    implementation("io.github.sceneview:sceneview:4.54.0")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
